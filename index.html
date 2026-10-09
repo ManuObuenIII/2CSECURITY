@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>2C Security</title>
+  <meta name="description" content="2C Trucking gate and garage security portal">
+
+  <!-- Android / Windows / Mac -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#a00000">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- iPhone / iPad -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="2C Security">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    :root{
+      --red-metal:linear-gradient(100deg,#6e0000 0%,#b80000 30%,#e30d0d 52%,#a00000 76%,#4a0000 100%);
+      --chrome:linear-gradient(90deg,#8d8d8d 0%,#ffffff 28%,#b8b8b8 52%,#f5f5f5 76%,#7d7d7d 100%);
+      --chrome-v:linear-gradient(180deg,#ffffff 0%,#e3e3e3 45%,#b5b5b5 55%,#f1f1f1 100%);
+      --sa-t:env(safe-area-inset-top,0px); --sa-b:env(safe-area-inset-bottom,0px);
+      --sa-l:env(safe-area-inset-left,0px); --sa-r:env(safe-area-inset-right,0px);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+    body{background:#8a0000 var(--red-metal);color:#fff}
+
+    /* ---------- the app ---------- */
+    #app{position:fixed;top:var(--sa-t);bottom:var(--sa-b);left:var(--sa-l);right:var(--sa-r);
+         width:calc(100% - var(--sa-l) - var(--sa-r));height:calc(100% - var(--sa-t) - var(--sa-b));
+         border:0;display:block;background:#e9e9ea;opacity:0;transition:opacity .45s ease}
+    #app.ready{opacity:1}
+
+    /* ---------- splash / offline / setup ---------- */
+    .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+            padding:calc(24px + var(--sa-t)) 24px calc(24px + var(--sa-b));background:#8a0000 var(--red-metal);text-align:center;
+            transition:opacity .5s ease,visibility .5s}
+    .screen::before{content:'';position:absolute;top:0;bottom:0;width:35%;left:-45%;
+            background:linear-gradient(100deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);animation:sheen 2.6s ease-in-out infinite}
+    .screen.gone{opacity:0;visibility:hidden;pointer-events:none}
+    .screen[hidden]{display:none}
+    @keyframes sheen{0%{left:-45%}100%{left:140%}}
+    .badge{position:relative;width:min(62vw,260px);border-radius:26px;padding:5px;background:var(--chrome-v);
+           box-shadow:0 22px 50px rgba(0,0,0,.45);animation:pop .8s cubic-bezier(.2,.8,.2,1) both}
+    .badge .inner{border-radius:22px;background:#fff;padding:18px 16px}
+    .badge img{display:block;width:100%;height:auto}
+    @keyframes pop{from{opacity:0;transform:scale(.6) rotate(-6deg)}to{opacity:1;transform:none}}
+    h1{margin:6px 0 0;font-size:22px;font-weight:900;letter-spacing:.02em;text-shadow:0 2px 6px rgba(0,0,0,.35)}
+    .sub{margin:0;font-size:14px;color:rgba(255,255,255,.85);max-width:320px;line-height:1.45}
+    .bar{position:relative;width:min(56vw,220px);height:5px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
+    .bar::after{content:'';position:absolute;top:0;bottom:0;width:40%;border-radius:3px;background:var(--chrome);animation:load 1.15s ease-in-out infinite}
+    @keyframes load{0%{left:-40%}100%{left:100%}}
+    .btn{position:relative;border:0;border-radius:12px;padding:12px 22px;font:700 15px/1 inherit;font-family:inherit;color:#7a0000;
+         background:var(--chrome-v);box-shadow:0 8px 20px rgba(0,0,0,.3);cursor:pointer}
+    .btn:active{transform:scale(.97)}
+    .ic{font-size:42px;line-height:1}
+    code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+
+    /* ---------- install prompt ---------- */
+    #install{position:fixed;z-index:20;left:50%;bottom:calc(16px + var(--sa-b));transform:translate(-50%,140%);
+             display:flex;align-items:center;gap:12px;width:min(92vw,420px);padding:10px 10px 10px 12px;border-radius:18px;
+             background:rgba(22,24,29,.96);color:#fff;box-shadow:0 16px 40px rgba(0,0,0,.4);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+    #install.show{transform:translate(-50%,0)}
+    #install img{width:44px;height:44px;border-radius:11px;background:#fff;flex-shrink:0}
+    #install .txt{flex:1;min-width:0;font-size:13px;line-height:1.35}
+    #install b{display:block;font-size:14px}
+    #install .go{border:0;border-radius:11px;padding:10px 14px;font-weight:800;font-family:inherit;color:#fff;background:var(--red-metal);cursor:pointer}
+    #install .x{border:0;background:none;color:#9ca3af;font-size:20px;width:34px;height:34px;cursor:pointer}
+    .share{display:inline-block;width:16px;height:16px;vertical-align:-3px}
+
+    @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <!-- Splash while the portal loads -->
+  <div class="screen" id="splash" role="status" aria-live="polite">
+    <div class="badge"><div class="inner"><img src="icons/logo.png" alt="2C Trucking"></div></div>
+    <h1>Security Portal</h1>
+    <div class="bar" aria-hidden="true"></div>
+    <p class="sub" id="splashMsg">Loading…</p>
+    <button class="btn" id="splashRetry" hidden>Retry</button>
+  </div>
+
+  <!-- No internet -->
+  <div class="screen" id="offline" hidden>
+    <div class="ic" aria-hidden="true">📡</div>
+    <h1>You're offline</h1>
+    <p class="sub">The portal needs internet to log gate movements. It will reconnect automatically.</p>
+    <button class="btn" id="offlineRetry">Try again</button>
+  </div>
+
+  <!-- Shown only if APP_URL hasn't been set yet -->
+  <div class="screen" id="setup" hidden>
+    <div class="ic" aria-hidden="true">⚙️</div>
+    <h1>One step left</h1>
+    <p class="sub">Open <code>index.html</code> on GitHub and paste your Apps Script <code>/exec</code> link into <code>APP_URL</code>.</p>
+  </div>
+
+  <iframe id="app" title="2C Security Portal"
+          allow="camera; clipboard-read; clipboard-write; autoplay; fullscreen"></iframe>
+
+  <!-- Install prompt (Android / desktop / iPhone hint) -->
+  <div id="install" role="dialog" aria-label="Install app">
+    <img src="icons/icon-192.png" alt="">
+    <div class="txt" id="installTxt"><b>Install 2C Security</b>Open it from your home screen like a normal app.</div>
+    <button class="go" id="installGo">Install</button>
+    <button class="x" id="installX" aria-label="Dismiss">×</button>
+  </div>
+
+  <script>
+  // =====================================================================
+  //  PASTE YOUR SECURITY PORTAL LINK HERE (Apps Script → Deploy → Web app URL)
+  // =====================================================================
+  const APP_URL = 'PASTE_YOUR_SECURITY_PORTAL_EXEC_URL_HERE';
+  // =====================================================================
+
+  const $ = id => document.getElementById(id);
+  const frame = $('app');
+  const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let loaded = false, slowTimer = null, startedAt = 0;
+
+  function show(id) { ['splash', 'offline', 'setup'].forEach(s => { const el = $(s); if (s === id) { el.hidden = false; el.classList.remove('gone'); } else if (!el.hidden) { el.classList.add('gone'); } }); }
+  function hideAll() { ['splash', 'offline', 'setup'].forEach(s => $(s).classList.add('gone')); }
+
+  function boot() {
+    if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) { show('setup'); return; }
+    if (!navigator.onLine) { show('offline'); return; }
+    loaded = false; startedAt = Date.now();
+    $('splashMsg').textContent = 'Loading…'; $('splashRetry').hidden = true;
+    show('splash'); frame.classList.remove('ready');
+    frame.src = APP_URL + (APP_URL.includes('?') ? '&' : '?') + 'app=1';
+    clearTimeout(slowTimer);
+    slowTimer = setTimeout(() => {
+      if (loaded) return;
+      $('splashMsg').textContent = 'Taking longer than usual. Check your connection.';
+      $('splashRetry').hidden = false;
+    }, 20000);
+  }
+
+  frame.addEventListener('load', () => {
+    if (!frame.src) return;
+    loaded = true; clearTimeout(slowTimer);
+    // keep the splash up briefly so it doesn't flash
+    setTimeout(() => { frame.classList.add('ready'); hideAll(); }, Math.max(0, 700 - (Date.now() - startedAt)));
+  });
+
+  $('splashRetry').onclick = boot;
+  $('offlineRetry').onclick = boot;
+  addEventListener('online', () => { if (!loaded || !$('offline').hidden) boot(); });
+  addEventListener('offline', () => { if (!loaded) show('offline'); });
+
+  // ---------- Install prompt ----------
+  const DISMISS_KEY = 'installDismissedAt';
+  function dismissedRecently() { try { return Date.now() - (+localStorage.getItem(DISMISS_KEY) || 0) < 3 * 86400000; } catch (e) { return false; } }
+  function hideInstall(remember) { $('install').classList.remove('show'); if (remember) try { localStorage.setItem(DISMISS_KEY, Date.now()); } catch (e) {} }
+  let deferredPrompt = null;
+
+  addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e;
+    if (!isStandalone && !dismissedRecently()) setTimeout(() => $('install').classList.add('show'), 1500);
+  });
+  $('installGo').onclick = async () => {
+    if (!deferredPrompt) return hideInstall(true);
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice.catch(() => {});
+    deferredPrompt = null; hideInstall(false);
+  };
+  $('installX').onclick = () => hideInstall(true);
+  addEventListener('appinstalled', () => hideInstall(false));
+
+  // iPhone/iPad Safari has no install button — show how to add it
+  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isiOS && !isStandalone && !dismissedRecently()) {
+    $('installTxt').innerHTML = '<b>Install 2C Security</b>Tap <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Share, then <b style="display:inline">Add to Home Screen</b>.';
+    $('installGo').hidden = true;
+    setTimeout(() => $('install').classList.add('show'), 2000);
+  }
+
+  // ---------- Service worker (offline screen + installability) ----------
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+
+  boot();
+  </script>
+</body>
+</html>
