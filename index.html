@@ -9,11 +9,11 @@
   <!-- Android / Windows / Mac -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#a00000">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <meta name="mobile-web-app-capable" content="yes">
 
   <!-- iPhone / iPad -->
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="2C Security">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -79,7 +79,7 @@
 <body>
   <!-- Splash while the portal loads -->
   <div class="screen" id="splash" role="status" aria-live="polite">
-    <div class="badge"><div class="inner"><img src="icons/logo.png" alt="2C Trucking"></div></div>
+    <div class="badge"><div class="inner"><img src="logo.png" alt="2C Trucking"></div></div>
     <h1>Security Portal</h1>
     <div class="bar" aria-hidden="true"></div>
     <p class="sub" id="splashMsg">Loading…</p>
@@ -106,7 +106,7 @@
 
   <!-- Install prompt (Android / desktop / iPhone hint) -->
   <div id="install" role="dialog" aria-label="Install app">
-    <img src="icons/icon-192.png" alt="">
+    <img src="icon-192.png" alt="">
     <div class="txt" id="installTxt"><b>Install 2C Security</b>Open it from your home screen like a normal app.</div>
     <button class="go" id="installGo">Install</button>
     <button class="x" id="installX" aria-label="Dismiss">×</button>
@@ -131,7 +131,7 @@
     if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) { show('setup'); return; }
     if (!navigator.onLine) { show('offline'); return; }
     loaded = false; startedAt = Date.now();
-    $('splashMsg').textContent = 'Loading…'; $('splashRetry').hidden = true;
+    $('splashMsg').textContent = 'Loading…';$('splashRetry').hidden = true;
     show('splash'); frame.classList.remove('ready');
     frame.src = APP_URL + (APP_URL.includes('?') ? '&' : '?') + 'app=1';
     clearTimeout(slowTimer);
@@ -157,36 +157,4 @@
   // ---------- Install prompt ----------
   const DISMISS_KEY = 'installDismissedAt';
   function dismissedRecently() { try { return Date.now() - (+localStorage.getItem(DISMISS_KEY) || 0) < 3 * 86400000; } catch (e) { return false; } }
-  function hideInstall(remember) { $('install').classList.remove('show'); if (remember) try { localStorage.setItem(DISMISS_KEY, Date.now()); } catch (e) {} }
-  let deferredPrompt = null;
-
-  addEventListener('beforeinstallprompt', e => {
-    e.preventDefault(); deferredPrompt = e;
-    if (!isStandalone && !dismissedRecently()) setTimeout(() => $('install').classList.add('show'), 1500);
-  });
-  $('installGo').onclick = async () => {
-    if (!deferredPrompt) return hideInstall(true);
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice.catch(() => {});
-    deferredPrompt = null; hideInstall(false);
-  };
-  $('installX').onclick = () => hideInstall(true);
-  addEventListener('appinstalled', () => hideInstall(false));
-
-  // iPhone/iPad Safari has no install button — show how to add it
-  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (isiOS && !isStandalone && !dismissedRecently()) {
-    $('installTxt').innerHTML = '<b>Install 2C Security</b>Tap <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Share, then <b style="display:inline">Add to Home Screen</b>.';
-    $('installGo').hidden = true;
-    setTimeout(() => $('install').classList.add('show'), 2000);
-  }
-
-  // ---------- Service worker (offline screen + installability) ----------
-  if ('serviceWorker' in navigator) {
-    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-  }
-
-  boot();
-  </script>
-</body>
-</html>
+  function hideInstall(remember) { $('install').classList.remove('show'); if (remember) try {
