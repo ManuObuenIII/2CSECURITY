@@ -2,7 +2,7 @@
 // Caches the app shell (splash, icons) so the app opens instantly and can show
 // its offline screen. The portal itself always loads live from Google.
 // Bump VERSION whenever you change index.html or the icons.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = '2c-security-' + VERSION;
 const SHELL = [
   './',
