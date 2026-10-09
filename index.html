@@ -122,31 +122,34 @@
   const $ = id => document.getElementById(id);
   const frame = $('app');
   const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  let loaded = false, slowTimer = null, startedAt = 0;
+  let loaded = false, startedAt = 0;
 
   function show(id) { ['splash', 'offline', 'setup'].forEach(s => { const el = $(s); if (s === id) { el.hidden = false; el.classList.remove('gone'); } else if (!el.hidden) { el.classList.add('gone'); } }); }
   function hideAll() { ['splash', 'offline', 'setup'].forEach(s => $(s).classList.add('gone')); }
+
+  function revealPortal() {
+    if (loaded) return;
+    loaded = true;
+    frame.classList.add('ready');
+    hideAll();
+  }
 
   function boot() {
     if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) { show('setup'); return; }
     if (!navigator.onLine) { show('offline'); return; }
     loaded = false; startedAt = Date.now();
-    $('splashMsg').textContent = 'Loading…';$('splashRetry').hidden = true;
+    $('splashMsg').textContent = 'Loading…'; $('splashRetry').hidden = true;
     show('splash'); frame.classList.remove('ready');
     frame.src = APP_URL + (APP_URL.includes('?') ? '&' : '?') + 'app=1';
-    clearTimeout(slowTimer);
-    slowTimer = setTimeout(() => {
-      if (loaded) return;
-      $('splashMsg').textContent = 'Taking longer than usual. Check your connection.';
-      $('splashRetry').hidden = false;
-    }, 20000);
+    
+    // FALLBACK: Forces the splash screen to hide after 3 seconds 
+    // even if Google swallows the load event.
+    setTimeout(revealPortal, 3000);
   }
 
   frame.addEventListener('load', () => {
     if (!frame.src) return;
-    loaded = true; clearTimeout(slowTimer);
-    // keep the splash up briefly so it doesn't flash
-    setTimeout(() => { frame.classList.add('ready'); hideAll(); }, Math.max(0, 700 - (Date.now() - startedAt)));
+    setTimeout(revealPortal, Math.max(0, 700 - (Date.now() - startedAt)));
   });
 
   $('splashRetry').onclick = boot;
@@ -157,4 +160,35 @@
   // ---------- Install prompt ----------
   const DISMISS_KEY = 'installDismissedAt';
   function dismissedRecently() { try { return Date.now() - (+localStorage.getItem(DISMISS_KEY) || 0) < 3 * 86400000; } catch (e) { return false; } }
-  function hideInstall(remember) { $('install').classList.remove('show'); if (remember) try {
+  function hideInstall(remember) { $('install').classList.remove('show'); if (remember) try { localStorage.setItem(DISMISS_KEY, Date.now()); } catch (e) {} }
+  let deferredPrompt = null;
+
+  addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e;
+    if (!isStandalone && !dismissedRecently()) setTimeout(() => $('install').classList.add('show'), 1500);
+  });
+  $('installGo').onclick = async () => {
+    if (!deferredPrompt) return hideInstall(true);
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice.catch(() => {});
+    deferredPrompt = null; hideInstall(false);
+  };
+  $('installX').onclick = () => hideInstall(true);
+  addEventListener('appinstalled', () => hideInstall(false));
+
+  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isiOS && !isStandalone && !dismissedRecently()) {
+    $('installTxt').innerHTML = '<b>Install 2C Security</b>Tap <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Share, then <b style="display:inline">Add to Home Screen</b>.';
+    $('installGo').hidden = true;
+    setTimeout(() => $('install').classList.add('show'), 2000);
+  }
+
+  // ---------- Service worker (offline screen + installability) ----------
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+
+  boot();
+  </script>
+</body>
+</html>
